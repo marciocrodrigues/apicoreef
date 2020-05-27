@@ -30,13 +30,13 @@ namespace Shop
             services.AddResponseCompression(options => 
             {
                 options.Providers.Add<GzipCompressionProvider>();
-                //Vai comprimir todos os tipos application/json
+                //Compression all types application/json
                 options.MimeTypes = ResponseCompressionDefaults.MimeTypes.Concat(new[] { "application/json" });
             });
             
             services.AddControllers();
 
-            // Autenticação por token JwtBearer
+            //Authentication utilization per use in token JwtBearer
             var key = Encoding.ASCII.GetBytes(Settings.Secret);
             services.AddAuthentication(x =>
             {
@@ -55,14 +55,14 @@ namespace Shop
                 };
             });
 
-            // Para usar a base de dados em memoria e comentar a linha com UseSqlServer
+            //To use a memory database, comment out the line with "UseSqlServer"
+            //uncomment the line below
             //services.AddDbContext<DataContext>(opt => opt.UseInMemoryDatabase("Database"));
 
-            //Sql Server está usando conexão em um container do Docker
             services.AddDbContext<DataContext>(opt => opt.UseSqlServer(Configuration.GetConnectionString("connectionString")));
             services.AddDependency();
 
-            // Documentação com swagger com a configuração para utilizar autenticação
+            // Documentation with Swagger and authentication utilization 
             services.AddSwaggerGen(x =>
             {
                 x.SwaggerDoc("v1", new OpenApiInfo { Title = "Shop Api", Version = "v1"});
