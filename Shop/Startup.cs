@@ -11,6 +11,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.AspNetCore.ResponseCompression;
 using System.Linq;
+using Microsoft.OpenApi.Models;
 
 namespace Shop
 {
@@ -25,6 +26,7 @@ namespace Shop
 
         public void ConfigureServices(IServiceCollection services)
         {
+            services.AddCors();
             services.AddResponseCompression(options => 
             {
                 options.Providers.Add<GzipCompressionProvider>();
@@ -59,6 +61,36 @@ namespace Shop
             //Sql Server está usando conexão em um container do Docker
             services.AddDbContext<DataContext>(opt => opt.UseSqlServer(Configuration.GetConnectionString("connectionString")));
             services.AddDependency();
+
+            // Documentação com swagger com a configuração para utilizar autenticação
+            services.AddSwaggerGen(x =>
+            {
+                x.SwaggerDoc("v1", new OpenApiInfo { Title = "Shop Api", Version = "v1"});
+
+                x.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme{
+                    Name = "Authorization",
+                    Type = SecuritySchemeType.ApiKey,
+                    Scheme = "Bearer",
+                    BearerFormat = "JWT",
+                    In = ParameterLocation.Header,
+                    Description = "JWT Authorization header using the Bearer scheme."
+                });
+
+                x.AddSecurityRequirement(new OpenApiSecurityRequirement
+                {
+                    {
+                        new OpenApiSecurityScheme
+                        {
+                            Reference = new OpenApiReference
+                            {
+                                Type = ReferenceType.SecurityScheme,
+                                Id = "Bearer"
+                            }
+                        },
+                        new string[] {}
+                    }
+                });
+            });
         }
 
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
@@ -70,7 +102,18 @@ namespace Shop
 
             app.UseHttpsRedirection();
 
+            app.UseSwagger();
+            app.UseSwaggerUI(x =>
+            {
+                x.SwaggerEndpoint("v1/swagger.json", "Shop Api V1");
+            });
+
             app.UseRouting();
+
+            app.UseCors(x => x
+                .AllowAnyOrigin()
+                .AllowAnyMethod()
+                .AllowAnyHeader());
 
             app.UseAuthentication();
             app.UseAuthorization();

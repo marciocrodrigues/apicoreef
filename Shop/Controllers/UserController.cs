@@ -41,8 +41,12 @@ namespace Shop.Controllers
             
             try
             {
+                model.Role = "employee";
+
                 _context.Users.Add(model);
                 await _context.SaveChangesAsync();
+
+                model.Password = "";
                 return Ok(model);
             }
             catch
@@ -68,6 +72,8 @@ namespace Shop.Controllers
                 
                 var token = TokenService.GenerateToken(user);
 
+                // Esconde a senha
+                user.Password = "";
                 return Ok(new {
                     user = user,
                     token = token
