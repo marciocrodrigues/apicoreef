@@ -11,7 +11,7 @@ using Shop.Services;
 
 namespace Shop.Controllers
 {
-    [Route("users")]
+    [Route("v1/users")]
     public class UserController : Controller
     {
         private readonly DataContext _context;
@@ -20,9 +20,20 @@ namespace Shop.Controllers
         {
             _context = context;
         }
+        
+        [HttpGet]
+        [Route("")]
+        [Authorize(Roles = "manager")]
+        public async Task<ActionResult<List<User>>> Get()
+        {
+            var users = await _context.Users.AsNoTracking().ToListAsync();
+            return Ok(users);
+        }
+
 
         [HttpPost]
         [Route("")]
+        [AllowAnonymous]
         public async Task<ActionResult<User>> Post([FromBody]User model)
         {
             if(!ModelState.IsValid)
@@ -42,6 +53,7 @@ namespace Shop.Controllers
 
         [HttpPost]
         [Route("login")]
+        [AllowAnonymous]
         public async Task<ActionResult<dynamic>> Authenticate([FromBody]User model)
         {
             if(!ModelState.IsValid)
@@ -64,6 +76,35 @@ namespace Shop.Controllers
             catch
             {
                 return BadRequest(new { message = "Não foi possível realizar o login" });
+            }
+        }
+
+        [HttpPut]
+        [Route("{id:int}")]
+        [Authorize(Roles = "manager")]
+        public async Task<ActionResult<User>> Put(int id, [FromBody]User model)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+            
+            var user = await _context.Users.AsNoTracking().Where(x => x.Id == id).FirstOrDefaultAsync();
+
+            if(user == null)
+                return NotFound(new { message = "Usuário não encontrado" });
+            
+            try
+            {
+                _context.Entry<User>(model).State = EntityState.Modified;
+                await _context.SaveChangesAsync();
+                return Ok(model);
+            }
+            catch(DbUpdateConcurrencyException)
+            {
+                return BadRequest(new { message = "Registro já foi atualizado" });
+            }
+            catch
+            {
+                return BadRequest(new { message = "Erro ao tentar alterar usuário" });
             }
         }
     }
